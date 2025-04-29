@@ -1,3 +1,6 @@
+@extends('layouts.base')
+
+@section('content')
 <!DOCTYPE html>
 <html lang="en">
 
@@ -10,8 +13,22 @@
 
   <style>
     #map {
-      height: 100vh;
+      height: 80vh;
       width: 100%;
+    }
+
+    /* Gaya kontrol lokasi */
+    .custom-location-btn {
+      position: absolute;
+      top: 60px;
+      left: 10px;
+      z-index: 1000;
+      background-color: #fff;
+      padding: 6px 10px;
+      border-radius: 4px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+      font-size: 14px;
     }
   </style>
 
@@ -37,29 +54,26 @@
       }
     });
 
-    // Buat base layers (tampilan peta)
+    // Base layers
     var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap'
     });
 
-    // Peta Satelit terbaru dari ESRI
     var esriSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
       attribution: '&copy; Esri, Maxar, Earthstar Geographics'
     });
 
-    // Label Jalan dari ESRI
     var esriLabels = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', {
       attribution: '&copy; Esri'
     });
 
-    // Gabungan Satelit + Label
     var satelliteWithLabels = L.layerGroup([esriSat, esriLabels]);
 
     var map = L.map('map', {
-      center: [-0.8871595143462079, 119.86048290907013],
+      center: [-0.8871, 119.8604],
       zoom: 13,
-      layers: [osm] // default tampilan pertama
+      layers: [osm]
     });
 
     var baseMaps = {
@@ -67,12 +81,11 @@
       "Satellite + Street": satelliteWithLabels
     };
 
-    // Tambahkan control layer di pojok kanan atas
     L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
 
-    var searchMarker;
+    var searchMarker; // Marker global untuk menghapus marker sebelumnya
 
-    // Tambahkan geocoder di kiri atas
+    // Geocoder (Search box)
     var geocoder = L.Control.geocoder({
       defaultMarkGeocode: false,
       geocoder: L.Control.Geocoder.nominatim(),
@@ -82,7 +95,7 @@
       var name = e.geocode.name;
 
       if (searchMarker) {
-        map.removeLayer(searchMarker);
+        map.removeLayer(searchMarker); // Hapus marker sebelumnya
       }
 
       searchMarker = L.marker(center).addTo(map)
@@ -99,6 +112,12 @@
 
       alert(`You clicked the map at latitude: ${lat} and longitude: ${lng}`);
 
+      // Hapus marker yang ada sebelumnya jika ada
+      if (searchMarker) {
+        map.removeLayer(searchMarker);
+      }
+
+      // Kirim data ke server
       $.ajax({
         url: '/your-endpoint',
         method: 'POST',
@@ -114,27 +133,67 @@
           alert('Error: ' + JSON.stringify(e));
         }
       });
+
+      // Tambahkan marker baru setelah pengiriman data
+      searchMarker = L.marker([lat, lng]).addTo(map)
+        .bindPopup(`Latitude: ${lat}, Longitude: ${lng}`)
+        .openPopup();
     });
 
-    // Geolokasi
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(function (position) {
-        var userLat = position.coords.latitude;
-        var userLng = position.coords.longitude;
+    // Fungsi cari lokasi terkini
+    function goToUserLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function (position) {
+          var userLat = position.coords.latitude;
+          var userLng = position.coords.longitude;
 
-        map.setView([userLat, userLng], 13);
+          // Menggeser peta dan menambahkan marker pada lokasi terkini
+          map.setView([userLat, userLng], 13); // Geser peta
 
-        L.marker([userLat, userLng]).addTo(map)
-          .bindPopup('You are here!')
-          .openPopup();
-      }, function () {
-        alert('Geolocation failed or is not supported by this browser.');
-      });
-    } else {
-      alert('Geolocation is not supported by this browser.');
+          if (searchMarker) {
+            map.removeLayer(searchMarker); // Hapus marker sebelumnya jika ada
+          }
+
+          // Tambahkan marker pada lokasi terkini
+          searchMarker = L.marker([userLat, userLng]).addTo(map)
+            .bindPopup("Lokasi Anda Sekarang")
+            .openPopup();
+
+        }, function () {
+          alert('Gagal mendeteksi lokasi, atau izin ditolak.');
+        });
+      } else {
+        alert('Browser tidak mendukung geolocation.');
+      }
     }
+
+    // Tambahkan custom button control untuk cari lokasi
+    var locateControl = L.control({ position: 'topright' });
+
+    locateControl.onAdd = function (map) {
+      var div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+      div.innerHTML = '<a href="#" title="Cari Lokasi Terkini">📍</a>';
+      div.style.backgroundColor = 'white';
+      div.style.width = '34px';
+      div.style.height = '34px';
+      div.style.display = 'flex';
+      div.style.alignItems = 'center';
+      div.style.justifyContent = 'center';
+      div.style.fontSize = '20px';
+
+      div.onclick = function (e) {
+        e.preventDefault();
+        goToUserLocation();
+      };
+
+      return div;
+    };
+
+    locateControl.addTo(map);
+
   </script>
 
 </body>
 
 </html>
+@endsection
