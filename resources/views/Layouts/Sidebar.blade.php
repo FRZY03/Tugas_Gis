@@ -1,35 +1,23 @@
-<!--begin::Sidebar-->
-<aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
-    <!--begin::Sidebar Brand-->
-    <div class="sidebar-brand">
-        <!--begin::Brand Link-->
-        <a href="{{ url('etalase') }}" class="brand-link"> <!-- Tautkan ke halaman etalase -->
-            <!--begin::Brand Image-->
-            <img src="{{ asset('asset/dist/assets/img/map.png') }}" alt="AdminLTE Logo" class="brand-image opacity-75 shadow">
-            <!--end::Brand Image-->
-            <!--begin::Brand Text-->
-            <span class="brand-text fw-light">TUGAS GIS</span>
-            <!--end::Brand Text-->
-        </a>
-        <!--end::Brand Link-->
-    </div>
-    <!--end::Sidebar Brand-->
+<nav class="sidebar bg-light border-end vh-100 d-flex flex-column p-3 position-fixed">
+  <a href="{{ route('wilayah.index') }}" class="d-flex align-items-center mb-3 mb-md-0 text-decoration-none">
+    <i class="fas fa-laugh-wink fa-lg me-2 text-primary"></i>
+    <span class="fs-5 fw-bold">TUGAS GIS</span>
+  </a>
+  <hr>
 
-    <!--begin::Sidebar Wrapper-->
-    <div class="sidebar-wrapper">
-        <nav class="mt-2">
-            <!--begin::Sidebar Menu-->
-            <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" role="menu" data-accordion="false">
-                <li class="nav-item menu-open">
-    <a href="{{ route('wilayah.index') }}" class="nav-link active">
-        <i class="nav-icon fas fa-map"></i>
-        <p>Peta</p>
-    </a>
-</li>
-            </ul>
-            <!--end::Sidebar Menu-->
-        </nav>
-    </div>
-    <!--end::Sidebar Wrapper-->
-</aside>
-<!--end::Sidebar-->
+  <ul class="nav nav-pills flex-column mb-auto">
+    <li>
+      <a href="{{ route('wilayah.index') }}" class="nav-link {{ request()->routeIs('wilayah.index') ? 'active' : 'text-dark' }}">
+        <i class="fas fa-list me-2"></i> Peta
+      </a>
+    </li>
+
+    <li>
+      <a href="{{ route('wilayah.manage') }}" class="nav-link {{ request()->routeIs('wilayah.manage') ? 'active' : 'text-dark' }}">
+        <i class="fas fa-chart-bar me-2"></i> Data Wilayah
+      </a>
+    </li>
+  </ul>
+
+  <hr>
+</nav>

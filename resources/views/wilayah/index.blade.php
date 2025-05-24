@@ -1,199 +1,138 @@
-@extends('layouts.base')
+@extends('layouts.app')
 
 @section('content')
-<!DOCTYPE html>
-<html lang="en">
+<div class="container py-3">
+  <h4 class="mb-3">Peta Wilayah</h4>
+  <div id="map" style="height: 80vh; width: 100%;"></div>
+</div>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tugas GIS</title>
+<!-- Modal Input Wilayah -->
+<div class="modal fade" id="inputModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form id="inputForm">
+      @csrf
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Tambah Wilayah Baru</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="inputLatitude" name="latitude" />
+          <input type="hidden" id="inputLongitude" name="longitude" />
 
-  <meta name="csrf-token" content="{{ csrf_token() }}">
+          <div class="mb-3">
+            <label for="inputNama" class="form-label">Nama Wilayah</label>
+            <input type="text" id="inputNama" name="nama" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label for="inputDeskripsi" class="form-label">Deskripsi</label>
+            <textarea id="inputDeskripsi" name="deskripsi" class="form-control"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Simpan</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
 
-  <style>
-    #map {
-      height: 80vh;
-      width: 100%;
+<!-- Load CSS Leaflet -->
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  crossorigin=""
+/>
+
+<!-- Bootstrap CSS & JS -->
+<link
+  href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+  rel="stylesheet"
+/>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- jQuery -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+<script>
+  // Setup CSRF token untuk AJAX Laravel
+  $.ajaxSetup({
+    headers: {
+      'X-CSRF-TOKEN': '{{ csrf_token() }}'
     }
+  });
 
-    /* Gaya kontrol lokasi */
-    .custom-location-btn {
-      position: absolute;
-      top: 60px;
-      left: 10px;
-      z-index: 1000;
-      background-color: #fff;
-      padding: 6px 10px;
-      border-radius: 4px;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
-      cursor: pointer;
-      font-size: 14px;
-    }
-  </style>
+  // Inisialisasi peta
+  var map = L.map("map").setView([-0.8871, 119.8604], 13);
 
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder@2.0.1/dist/Control.Geocoder.css" />
-</head>
+  // Tambahkan tile layer OpenStreetMap
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: "&copy; OpenStreetMap contributors",
+  }).addTo(map);
 
-<body>
+  // Data wilayah dari controller
+  const wilayah = @json($wilayah);
 
-  <div id="map"></div>
+  // Pasang marker wilayah yang sudah ada
+  wilayah.forEach(w => {
+    L.marker([w.latitude, w.longitude])
+      .addTo(map)
+      .bindPopup(`<b>${w.nama}</b><br>${w.deskripsi ?? ''}`);
+  });
 
-  <!-- jQuery -->
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script src="https://unpkg.com/leaflet-control-geocoder@2.0.1/dist/Control.Geocoder.js"></script>
+  // Variable untuk modal Bootstrap supaya tidak buat instance berulang
+  var inputModal = new bootstrap.Modal(document.getElementById('inputModal'));
 
-  <script>
-    // Setup CSRF token
-    $.ajaxSetup({
-      headers: {
-        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-      }
-    });
+  // Saat klik peta, isi koordinat dan tampilkan modal input
+  map.on('click', function(e) {
+    $('#inputLatitude').val(e.latlng.lat);
+    $('#inputLongitude').val(e.latlng.lng);
+    $('#inputNama').val('');
+    $('#inputDeskripsi').val('');
+    inputModal.show();
+  });
 
-    // Base layers
-    var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap'
-    });
+  // Submit form tambah wilayah via AJAX
+  $('#inputForm').submit(function(e) {
+    e.preventDefault();
 
-    var esriSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      attribution: '&copy; Esri, Maxar, Earthstar Geographics'
-    });
-
-    var esriLabels = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', {
-      attribution: '&copy; Esri'
-    });
-
-    var satelliteWithLabels = L.layerGroup([esriSat, esriLabels]);
-
-    var map = L.map('map', {
-      center: [-0.8871, 119.8604],
-      zoom: 13,
-      layers: [osm]
-    });
-
-    var baseMaps = {
-      "OpenStreetMap": osm,
-      "Satellite + Street": satelliteWithLabels
+    // Data form yang akan dikirim
+    const formData = {
+      nama: $('#inputNama').val(),
+      deskripsi: $('#inputDeskripsi').val(),
+      latitude: $('#inputLatitude').val(),
+      longitude: $('#inputLongitude').val(),
     };
 
-    L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
+    $.ajax({
+      url: "{{ route('wilayah.store') }}",
+      method: 'POST',
+      data: formData,
+      success: function(res) {
+        // Tambah marker baru di peta sesuai response
+        L.marker([res.latitude, res.longitude])
+          .addTo(map)
+          .bindPopup(`<b>${res.nama}</b><br>${res.deskripsi ?? ''}`);
 
-    var searchMarker; // Marker global untuk menghapus marker sebelumnya
+        // Tutup modal
+        inputModal.hide();
 
-    // Geocoder (Search box)
-    var geocoder = L.Control.geocoder({
-      defaultMarkGeocode: false,
-      geocoder: L.Control.Geocoder.nominatim(),
-      position: 'topleft'
-    }).on('markgeocode', function (e) {
-      var center = e.geocode.center;
-      var name = e.geocode.name;
-
-      if (searchMarker) {
-        map.removeLayer(searchMarker); // Hapus marker sebelumnya
-      }
-
-      searchMarker = L.marker(center).addTo(map)
-        .bindPopup(name)
-        .openPopup();
-
-      map.setView(center, 15);
-    }).addTo(map);
-
-    // Klik map
-    map.on('click', function (e) {
-      const lat = e.latlng.lat;
-      const lng = e.latlng.lng;
-
-      alert(`You clicked the map at latitude: ${lat} and longitude: ${lng}`);
-
-      // Hapus marker yang ada sebelumnya jika ada
-      if (searchMarker) {
-        map.removeLayer(searchMarker);
-      }
-
-      // Kirim data ke server
-      $.ajax({
-        url: '/your-endpoint',
-        method: 'POST',
-        data: {
-          id_wilayah: '1',
-          longitude: lng,
-          latitude: lat
-        },
-        success: function (result) {
-          console.log('Data successfully sent: ', result);
-        },
-        error: function (e) {
-          alert('Error: ' + JSON.stringify(e));
+        alert('Wilayah berhasil ditambahkan!');
+      },
+      error: function(xhr) {
+        let msg = 'Gagal menyimpan wilayah!';
+        if (xhr.responseJSON && xhr.responseJSON.message) {
+          msg += '\n' + xhr.responseJSON.message;
         }
-      });
-
-      // Tambahkan marker baru setelah pengiriman data
-      searchMarker = L.marker([lat, lng]).addTo(map)
-        .bindPopup(`Latitude: ${lat}, Longitude: ${lng}`)
-        .openPopup();
-    });
-
-    // Fungsi cari lokasi terkini
-    function goToUserLocation() {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function (position) {
-          var userLat = position.coords.latitude;
-          var userLng = position.coords.longitude;
-
-          // Menggeser peta dan menambahkan marker pada lokasi terkini
-          map.setView([userLat, userLng], 13); // Geser peta
-
-          if (searchMarker) {
-            map.removeLayer(searchMarker); // Hapus marker sebelumnya jika ada
-          }
-
-          // Tambahkan marker pada lokasi terkini
-          searchMarker = L.marker([userLat, userLng]).addTo(map)
-            .bindPopup("Lokasi Anda Sekarang")
-            .openPopup();
-
-        }, function () {
-          alert('Gagal mendeteksi lokasi, atau izin ditolak.');
-        });
-      } else {
-        alert('Browser tidak mendukung geolocation.');
+        alert(msg);
+        console.error(xhr);
       }
-    }
-
-    // Tambahkan custom button control untuk cari lokasi
-    var locateControl = L.control({ position: 'topright' });
-
-    locateControl.onAdd = function (map) {
-      var div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-      div.innerHTML = '<a href="#" title="Cari Lokasi Terkini">📍</a>';
-      div.style.backgroundColor = 'white';
-      div.style.width = '34px';
-      div.style.height = '34px';
-      div.style.display = 'flex';
-      div.style.alignItems = 'center';
-      div.style.justifyContent = 'center';
-      div.style.fontSize = '20px';
-
-      div.onclick = function (e) {
-        e.preventDefault();
-        goToUserLocation();
-      };
-
-      return div;
-    };
-
-    locateControl.addTo(map);
-
-  </script>
-
-</body>
-
-</html>
+    });
+  });
+</script>
 @endsection

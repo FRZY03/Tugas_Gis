@@ -10,14 +10,18 @@ return new class extends Migration
     {
         Schema::create('wilayahs', function (Blueprint $table) {
             $table->id();
-            $table->string('nama'); // <-- ini HARUS ADA
-            $table->text('deskripsi')->nullable();
+            $table->string('nama');
+            $table->text('deskripsi')->nullable()->after('nama');
+            $table->decimal('latitude', 10, 7);
+            $table->decimal('longitude', 10, 7);
             $table->timestamps();
         });
     }
 
     public function down(): void
-    {
-        Schema::dropIfExists('wilayahs');
-    }
+{
+    Schema::table('wilayahs', function (Blueprint $table) {
+        $table->dropColumn('deskripsi');
+    });
+}
 };

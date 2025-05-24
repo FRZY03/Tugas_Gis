@@ -9,5 +9,6 @@ class Wilayah extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['nama', 'deskripsi', 'longitude', 'latitude'];
+    protected $fillable = ['nama', 'deskripsi', 'latitude', 'longitude'];
+
 }
