@@ -8,7 +8,6 @@ use App\Http\Controllers\YourController;
 Route::get('/', function () {
     return redirect()->route('wilayah.index');
 });
-Route::get('/wilayah/manage', [WilayahController::class, 'manage'])->name('wilayah.manage');
 Route::delete('/wilayah/hapus-semua', [WilayahController::class, 'hapusSemua'])->name('wilayah.hapusSemua');
 Route::resource('wilayah', WilayahController::class);
 

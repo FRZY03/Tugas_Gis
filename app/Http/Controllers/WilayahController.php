@@ -14,12 +14,6 @@ class WilayahController extends Controller
         return view('wilayah.index', compact('wilayah'));
     }
 
-    public function manage()
-    {
-        $wilayah = Wilayah::all();
-        return view('wilayah.manage', compact('wilayah'));
-    }
-
     // Simpan data wilayah baru
     public function store(Request $request)
 {

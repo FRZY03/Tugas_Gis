@@ -11,12 +11,6 @@
         <i class="fas fa-list me-2"></i> Peta
       </a>
     </li>
-
-    <li>
-      <a href="{{ route('wilayah.manage') }}" class="nav-link {{ request()->routeIs('wilayah.manage') ? 'active' : 'text-dark' }}">
-        <i class="fas fa-chart-bar me-2"></i> Data Wilayah
-      </a>
-    </li>
   </ul>
 
   <hr>

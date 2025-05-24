@@ -2,137 +2,292 @@
 
 @section('content')
 <div class="container py-3">
-  <h4 class="mb-3">Peta Wilayah</h4>
-  <div id="map" style="height: 80vh; width: 100%;"></div>
+  <h4>Manajemen Wilayah</h4>
+
+  <div id="map" style="height: 400px; width: 100%;" class="mb-4"></div>
+
+  <div class="d-flex justify-content-start gap-2 mb-3">
+    <button class="btn btn-primary" id="btnTambah">Tambah Wilayah Baru</button>
+    <button class="btn btn-danger" id="btnHapusSemua">Hapus Semua Data</button>
+  </div>
+
+  <table class="table table-bordered" id="wilayahTable">
+    <thead class="table-light">
+      <tr>
+        <th>No</th>
+        <th>Nama</th>
+        <th>Latitude</th>
+        <th>Longitude</th>
+        <th>Aksi</th>
+      </tr>
+    </thead>
+    <tbody>
+      @foreach ($wilayah as $w)
+      <tr>
+        <td>{{ $loop->iteration }}</td>
+        <td>{{ $w->nama }}</td>
+        <td>{{ $w->latitude }}</td>
+        <td>{{ $w->longitude }}</td>
+        <td>
+          @if($w->deskripsi)
+          <button class="btn btn-info btn-sm btn-detail" data-deskripsi="{{ htmlspecialchars($w->deskripsi, ENT_QUOTES) }}">Detail</button>
+          @endif
+          <button class="btn btn-warning btn-sm btn-edit"
+            data-id="{{ $w->id }}"
+            data-nama="{{ $w->nama }}"
+            data-deskripsi="{{ htmlspecialchars($w->deskripsi, ENT_QUOTES) }}"
+            data-lat="{{ $w->latitude }}"
+            data-lng="{{ $w->longitude }}"
+          >Edit</button>
+          <form action="{{ route('wilayah.destroy', $w->id) }}" method="POST" class="d-inline deleteForm">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
+          </form>
+        </td>
+      </tr>
+      @endforeach
+    </tbody>
+  </table>
 </div>
 
-<!-- Modal Input Wilayah -->
-<div class="modal fade" id="inputModal" tabindex="-1" aria-hidden="true">
+<!-- Modal Tambah -->
+<div class="modal fade" id="inputModal" tabindex="-1">
   <div class="modal-dialog">
     <form id="inputForm">
       @csrf
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">Tambah Wilayah Baru</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <input type="hidden" id="inputLatitude" name="latitude" />
-          <input type="hidden" id="inputLongitude" name="longitude" />
-
           <div class="mb-3">
-            <label for="inputNama" class="form-label">Nama Wilayah</label>
-            <input type="text" id="inputNama" name="nama" class="form-control" required />
+            <label>Nama Wilayah</label>
+            <input type="text" name="nama" id="inputNama" class="form-control" required>
           </div>
           <div class="mb-3">
-            <label for="inputDeskripsi" class="form-label">Deskripsi</label>
-            <textarea id="inputDeskripsi" name="deskripsi" class="form-control"></textarea>
+            <label>Deskripsi</label>
+            <textarea name="deskripsi" id="inputDeskripsi" class="form-control"></textarea>
+          </div>
+          <div class="mb-3">
+            <label>Latitude</label>
+            <input type="text" name="latitude" id="inputLatitude" class="form-control" required readonly>
+          </div>
+          <div class="mb-3">
+            <label>Longitude</label>
+            <input type="text" name="longitude" id="inputLongitude" class="form-control" required readonly>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="submit" class="btn btn-primary">Simpan</button>
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button class="btn btn-primary" type="submit">Simpan</button>
         </div>
       </div>
     </form>
   </div>
 </div>
 
-<!-- Load CSS Leaflet -->
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  crossorigin=""
-/>
+<!-- Modal Edit -->
+<div class="modal fade" id="editModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="POST" id="editForm">
+      @csrf
+      @method('PUT')
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Edit Wilayah</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label>Nama Wilayah</label>
+            <input type="text" name="nama" id="editNama" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label>Deskripsi</label>
+            <textarea name="deskripsi" id="editDeskripsi" class="form-control"></textarea>
+          </div>
+          <div class="mb-3">
+            <label>Latitude</label>
+            <input type="text" name="latitude" id="editLatitude" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label>Longitude</label>
+            <input type="text" name="longitude" id="editLongitude" class="form-control" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" type="submit">Update</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
 
-<!-- Bootstrap CSS & JS -->
-<link
-  href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-  rel="stylesheet"
-/>
+<!-- Modal Deskripsi -->
+<div class="modal fade" id="deskripsiModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Detail Deskripsi</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="deskripsiContent"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-<!-- jQuery -->
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 
-<!-- Leaflet JS -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<style>
+  .label-tooltip {
+    background-color: rgba(255, 255, 255, 0.8);
+    color: #333;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 12px;
+    border: 1px solid #ccc;
+  }
+</style>
 
 <script>
-  // Setup CSRF token untuk AJAX Laravel
   $.ajaxSetup({
-    headers: {
-      'X-CSRF-TOKEN': '{{ csrf_token() }}'
-    }
+    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
   });
 
-  // Inisialisasi peta
   var map = L.map("map").setView([-0.8871, 119.8604], 13);
-
-  // Tambahkan tile layer OpenStreetMap
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution: "&copy; OpenStreetMap contributors",
   }).addTo(map);
 
-  // Data wilayah dari controller
   const wilayah = @json($wilayah);
-
-  // Pasang marker wilayah yang sudah ada
   wilayah.forEach(w => {
     L.marker([w.latitude, w.longitude])
       .addTo(map)
       .bindPopup(`<b>${w.nama}</b><br>${w.deskripsi ?? ''}`);
   });
 
-  // Variable untuk modal Bootstrap supaya tidak buat instance berulang
-  var inputModal = new bootstrap.Modal(document.getElementById('inputModal'));
+  fetch('{{ asset('map/export.geojson') }}')
+    .then(response => response.json())
+    .then(geoJson => {
+      const colors = ['#FF5733', '#33FF57', '#3357FF', '#FF33A8', '#FF8F33', '#A833FF'];
+      let colorIndex = 0;
+      L.geoJSON(geoJson, {
+        style: function(feature) {
+          return {
+            color: colors[colorIndex++ % colors.length],
+            weight: 2,
+            fillOpacity: 0.3
+          };
+        },
+        onEachFeature: function(feature, layer) {
+          if (feature.properties?.name) {
+            layer.bindPopup(`<strong>${feature.properties.name}</strong>`);
+            layer.bindTooltip(feature.properties.name, {
+              permanent: true,
+              direction: "center",
+              className: "label-tooltip"
+            }).openTooltip();
+          }
+        }
+      }).addTo(map);
+    });
 
-  // Saat klik peta, isi koordinat dan tampilkan modal input
   map.on('click', function(e) {
     $('#inputLatitude').val(e.latlng.lat);
     $('#inputLongitude').val(e.latlng.lng);
     $('#inputNama').val('');
     $('#inputDeskripsi').val('');
-    inputModal.show();
+    $('#inputModal').modal('show');
   });
 
-  // Submit form tambah wilayah via AJAX
+  $('#btnTambah').click(() => {
+    $('#inputForm')[0].reset();
+    $('#inputLatitude').val('');
+    $('#inputLongitude').val('');
+    $('#inputModal').modal('show');
+  });
+
   $('#inputForm').submit(function(e) {
     e.preventDefault();
+    const formData = $(this).serialize();
+    $.post("{{ route('wilayah.store') }}", formData, function(data) {
+      $('#inputModal').modal('hide');
+      $('#inputForm')[0].reset();
 
-    // Data form yang akan dikirim
-    const formData = {
-      nama: $('#inputNama').val(),
-      deskripsi: $('#inputDeskripsi').val(),
-      latitude: $('#inputLatitude').val(),
-      longitude: $('#inputLongitude').val(),
-    };
+      L.marker([data.latitude, data.longitude])
+        .addTo(map)
+        .bindPopup(`<b>${data.nama}</b><br>${data.deskripsi ?? ''}`);
 
-    $.ajax({
-      url: "{{ route('wilayah.store') }}",
-      method: 'POST',
-      data: formData,
-      success: function(res) {
-        // Tambah marker baru di peta sesuai response
-        L.marker([res.latitude, res.longitude])
-          .addTo(map)
-          .bindPopup(`<b>${res.nama}</b><br>${res.deskripsi ?? ''}`);
-
-        // Tutup modal
-        inputModal.hide();
-
-        alert('Wilayah berhasil ditambahkan!');
-      },
-      error: function(xhr) {
-        let msg = 'Gagal menyimpan wilayah!';
-        if (xhr.responseJSON && xhr.responseJSON.message) {
-          msg += '\n' + xhr.responseJSON.message;
-        }
-        alert(msg);
-        console.error(xhr);
-      }
+      const newRow = `
+        <tr>
+          <td>${$('#wilayahTable tbody tr').length + 1}</td>
+          <td>${data.nama}</td>
+          <td>${data.latitude}</td>
+          <td>${data.longitude}</td>
+          <td>
+            ${data.deskripsi ? `<button class="btn btn-info btn-sm btn-detail" data-deskripsi="${data.deskripsi}">Detail</button>` : ''}
+            <button class="btn btn-warning btn-sm btn-edit"
+              data-id="${data.id}"
+              data-nama="${data.nama}"
+              data-deskripsi="${data.deskripsi ?? ''}"
+              data-lat="${data.latitude}"
+              data-lng="${data.longitude}">Edit</button>
+            <form action="/wilayah/${data.id}" method="POST" class="d-inline deleteForm">
+              @csrf
+              @method('DELETE')
+              <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
+            </form>
+          </td>
+        </tr>
+      `;
+      $('#wilayahTable tbody').append(newRow);
+    }).fail(function(xhr) {
+      alert('Gagal menyimpan data');
     });
+  });
+
+  $(document).on('click', '.btn-edit', function () {
+    const id = $(this).data('id');
+    $('#editNama').val($(this).data('nama'));
+    $('#editDeskripsi').val($(this).data('deskripsi'));
+    $('#editLatitude').val($(this).data('lat'));
+    $('#editLongitude').val($(this).data('lng'));
+    $('#editForm').attr('action', '/wilayah/' + id);
+    $('#editModal').modal('show');
+  });
+
+  $(document).on('click', '.btn-detail', function () {
+    $('#deskripsiContent').text($(this).data('deskripsi'));
+    $('#deskripsiModal').modal('show');
+  });
+
+  $(document).on('submit', '.deleteForm', function () {
+    return confirm('Yakin ingin menghapus wilayah ini?');
+  });
+
+  $('#btnHapusSemua').click(function () {
+    if (confirm('Yakin ingin menghapus SEMUA data wilayah?')) {
+      $.ajax({
+        url: "{{ route('wilayah.hapusSemua') }}",
+        method: 'DELETE',
+        data: { _token: "{{ csrf_token() }}" },
+        success: function(res) {
+          alert(res.message);
+          location.reload();
+        },
+        error: function(xhr) {
+          alert('Gagal menghapus semua data!');
+        }
+      });
+    }
   });
 </script>
 @endsection
